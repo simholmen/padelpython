@@ -7,8 +7,11 @@ class Player:
     def add_win(self):
         self.wins = self.wins + 1
 
-    def add_score(self, score):
-        self.points = self.points + score
+    def add_winnerscore(self, score):
+        self.points = self.points + (21 - score)
+
+    def add_looserscore(self, score):
+        self.points = self.points - (21 - score)
 
     def add_player(self, name):
         self.name.append(name)
