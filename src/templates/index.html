@@ -1,0 +1,23 @@
+<!doctype html>
+<title>Padel Turnering</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+<h1>Padel Turnering</h1>
+<form method="post" action="{{ url_for('add_player') }}">
+    <input name="name" placeholder="Spiller-navn" required>
+    <button type="submit">Legg til spiller</button>
+</form>
+<h2>Spillere:</h2>
+<ul>
+{% for player in players %}
+    <li>{{ player.name }}</li>
+{% endfor %}
+</ul>
+<form method="get" action="{{ url_for('start_round') }}">
+    <button type="submit" {% if players|length < 4 %}disabled{% endif %}>Start Runde</button>
+</form>
+<h2>Resultater:</h2>
+<ul>
+{% for player in players %}
+    <li>{{ player.name }} - Seire: {{ player.wins }}</li>
+{% endfor %}
+</ul>

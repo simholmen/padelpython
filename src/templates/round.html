@@ -1,0 +1,35 @@
+<!doctype html>
+<title>Registrer resultater</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+<h1>Registrer resultater</h1>
+<form method="post">
+    {% for match in matches %}
+    <div>
+        <b>Kamp {{ loop.index }}:</b> {{ match.team1 }} vs {{ match.team2 }}<br>
+        {% if walkover_player %}
+        <b>Walkover:</b> {{ walkover_player.name }} får walkover!<br>
+        {% endif %}
+        <label>
+            <input type="radio" name="winner_{{ match.idx }}" value="1" required> {{ match.team1 }} vant
+        </label>
+        <label>
+            <input type="radio" name="winner_{{ match.idx }}" value="2"> {{ match.team2 }} vant
+        </label>
+    </div>
+    <hr>
+    {% endfor %}
+    {% if extra_match %}
+    <div>
+        <b>Ekstra kamp:</b> {{ extra_match.p1 }} vs {{ extra_match.p2 }}<br>
+        <label>
+            <input type="radio" name="winner_extra" value="1" required> {{ extra_match.p1 }} vant
+        </label>
+        <label>
+            <input type="radio" name="winner_extra" value="2"> {{ extra_match.p2 }} vant
+        </label>
+    </div>
+    <hr>
+    {% endif %}
+    <button type="submit">Registrer resultater</button>
+</form>
+<a href="{{ url_for('index') }}">Tilbake</a>
