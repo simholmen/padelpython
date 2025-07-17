@@ -25,6 +25,7 @@ python src/main.py
 - Etter hver runde blir listen sortert på ny, basert på resultat og poeng
 - Den nye listen lager de nye lagene
 - Resultater kan bli vist etter hver runde eller når turneringen er ferdig
+- Walkover for ekstra personer
 
 ## Contributing
 Laget av Simen
