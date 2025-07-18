@@ -16,6 +16,9 @@ class Player:
     def add_player(self, name):
         self.name.append(name)
 
+    def remove_player(self, name):
+        self.name.remove(name)
+
     def print_standings(self):
         print(f"Navn: {self.name}")
         print(f"Wins: {self.wins}")

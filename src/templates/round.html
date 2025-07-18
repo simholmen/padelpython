@@ -15,6 +15,15 @@
         <label>
             <input type="radio" name="winner_{{ match.idx }}" value="2"> {{ match.team2 }} vant
         </label>
+        <br>
+        <label>
+            Poeng {{ match.team1 }}:
+            <input type="number" name="score1_{{ match.idx }}" required>
+        </label>
+        <label>
+            Poeng {{ match.team2 }}:
+            <input type="number" name="score2_{{ match.idx }}" required>
+        </label>
     </div>
     <hr>
     {% endfor %}
@@ -26,6 +35,15 @@
         </label>
         <label>
             <input type="radio" name="winner_extra" value="2"> {{ extra_match.p2 }} vant
+        </label>
+        <br>
+        <label>
+            Poeng {{ extra_match.p1 }}:
+            <input type="number" name="score1_extra" required>
+        </label>
+        <label>
+            Poeng {{ extra_match.p2 }}:
+            <input type="number" name="score2_extra" required>
         </label>
     </div>
     <hr>
