@@ -11,6 +11,10 @@ tournament = Tournament()
 def index():
     return render_template("index.html", players=tournament.players)
 
+@app.route("/resultater")
+def resultater():
+    return render_template("Resultater.html", players=tournament.players)
+
 @app.route("/add", methods=["POST"])
 def add_player():
     name = request.form["name"]

@@ -17,20 +17,8 @@ h1 {
     box-shadow: 0 2px 8px #0001;
 }
 
-form {
-    margin: 24px auto;
-    max-width: 400px;
-    background: #fff;
-    padding: 18px 24px;
-    border-radius: 10px;
-    box-shadow: 0 2px 8px #0002;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-}
-
 input[type="text"], input[type="number"] {
-    padding: 8px;
+    padding: 80px;
     border: 1px solid #b3c6e0;
     border-radius: 5px;
     font-size: 1em;
@@ -40,7 +28,7 @@ button {
     background: #2d8cff;
     color: #fff;
     border: none;
-    padding: 10px 0;
+    padding: 10px 10px;
     border-radius: 5px;
     font-size: 1em;
     cursor: pointer;
@@ -54,6 +42,18 @@ button:disabled {
 
 button:hover:not(:disabled) {
     background: #1769aa;
+}
+form {
+    max-width: 400px;
+    margin: 16px auto;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.legg-til-spiller {
+    text-align: center;
+    margin-bottom: 20px;
 }
 
 ul {
@@ -75,6 +75,23 @@ li {
     align-items: center;
 }
 
+.plassering {
+    flex: 0 0 32px; /* fixed width for number */
+    text-align: left;
+}
+
+.spiller-navn {
+    flex: 1 1 auto;
+    text-align: center;
+    font-weight: bold;
+}
+
+.stats {
+    flex: 0 0 auto;
+    text-align: right;
+    font-size: 0.95em;
+}
+
 h2 {
     margin: 32px auto 8px auto;
     max-width: 400px;
@@ -93,6 +110,96 @@ h2 {
     display: inline;
     flex-direction: unset;
     gap: 0;
+}
+.player-name {
+    font-weight: bold;
+    color: #1769aa;
+}
+.plass-1 {
+    background: #ffd700; /* Gold */
+    color: #222;
+}
+.plass-2 {
+    background: #c0c0c0; /* Silver */
+    color: #222;
+}
+.plass-3 {
+    background: #cd7f32; /* Bronze */
+    color: #fff;
+}
+.topp-tre {
+    font-weight: bold;
+}
+
+/* Podium styles */
+.podium-container {
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+    margin: 40px 0 32px 0;
+}
+
+.podium {
+    display: flex;
+    align-items: flex-end;
+    gap: 24px;
+}
+
+.pillar {
+    width: 90px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    align-items: center;
+    border-radius: 12px 12px 0 0;
+    position: relative;
+    box-shadow: 0 4px 12px #0002;
+    font-weight: bold;
+    font-size: 1.1em;
+}
+
+.pillar-label {
+    text-align: center;
+    padding: 8px 0;
+    width: 100%;
+    word-break: break-word;
+}
+
+.pillar.gold {
+    background: linear-gradient(180deg, #ffe066 80%, #ffd700 100%);
+    height: 220px;
+    color: #222;
+}
+
+.pillar.silver {
+    background: linear-gradient(180deg, #e0e0e0 80%, #c0c0c0 100%);
+    height: 150px;
+    color: #222;
+}
+
+.pillar.bronze {
+    background: linear-gradient(180deg, #e0b07a 80%, #cd7f32 100%);
+    height: 80px;
+    color: #fff;
+}
+
+.result-list {
+    list-style: none;
+    padding: 0;
+    margin: 0 auto;
+    max-width: 400px;
+}
+
+.result-list li {
+    background: #eaf2fb;
+    margin-bottom: 8px;
+    padding: 10px 16px;
+    border-radius: 6px;
+    font-size: 1.05em;
+    box-shadow: 0 1px 3px #0001;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 }
 
 @media (max-width: 600px) {
