@@ -78,19 +78,26 @@ li {
 .plassering {
     flex: 0 0 32px; /* fixed width for number */
     text-align: left;
+    font-size: 2em;
 }
 
 .spiller-navn {
     flex: 1 1 auto;
     text-align: center;
     font-weight: bold;
+    text-transform: capitalize;
+    font-size: 2em;
 }
 
 .stats {
     flex: 0 0 auto;
     text-align: right;
-    font-size: 0.95em;
+    font-size: 2em;
 }
+.player-list {
+    margin-top: 32px;
+    width: 1000px;
+}   
 
 h2 {
     margin: 32px auto 8px auto;
@@ -99,6 +106,25 @@ h2 {
     font-size: 1.3em;
     border-bottom: 1px solid #b3c6e0;
     padding-bottom: 4px;
+}
+
+.tilbake-knapp {
+    position: absolute;
+    top: 24px;
+    left: 24px;
+    background: #2d8cff;
+    color: #fff;
+    padding: 8px 18px;
+    border-radius: 6px;
+    text-decoration: none;
+    font-weight: bold;
+    font-size: 1em;
+    box-shadow: 0 2px 8px #0001;
+    transition: background 0.2s;
+    z-index: 10;
+}
+.tilbake-knapp:hover {
+    background: #1769aa;
 }
 .inline-form {
     background: none;
@@ -146,7 +172,7 @@ h2 {
 }
 
 .pillar {
-    width: 90px;
+    width: 270px;
     display: flex;
     flex-direction: column;
     justify-content: flex-end;
@@ -155,7 +181,7 @@ h2 {
     position: relative;
     box-shadow: 0 4px 12px #0002;
     font-weight: bold;
-    font-size: 1.1em;
+    font-size: 2.1em;
 }
 
 .pillar-label {
@@ -167,19 +193,16 @@ h2 {
 
 .pillar.gold {
     background: linear-gradient(180deg, #ffe066 80%, #ffd700 100%);
-    height: 220px;
     color: #222;
 }
 
 .pillar.silver {
     background: linear-gradient(180deg, #e0e0e0 80%, #c0c0c0 100%);
-    height: 150px;
     color: #222;
 }
 
 .pillar.bronze {
     background: linear-gradient(180deg, #e0b07a 80%, #cd7f32 100%);
-    height: 80px;
     color: #fff;
 }
 
@@ -187,7 +210,7 @@ h2 {
     list-style: none;
     padding: 0;
     margin: 0 auto;
-    max-width: 400px;
+    max-width: 850px;
 }
 
 .result-list li {
@@ -195,11 +218,54 @@ h2 {
     margin-bottom: 8px;
     padding: 10px 16px;
     border-radius: 6px;
-    font-size: 1.05em;
     box-shadow: 0 1px 3px #0001;
     display: flex;
     justify-content: space-between;
     align-items: center;
+}
+
+.player-item {
+    opacity: 0;
+    transition: opacity 0.5s;
+}
+
+.player-item.visible {
+    opacity: 1;
+}
+
+.pillar {
+    width: 270px;
+    height: 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    align-items: center;
+    border-radius: 12px 12px 0 0;
+    position: relative;
+    box-shadow: 0 4px 12px #0002;
+    font-weight: bold;
+    font-size: 2em;
+    overflow: hidden;
+    transition: height 1s cubic-bezier(0.4, 0, 0.2, 1);
+    text-transform: capitalize;
+}
+
+.pillar-label {
+    opacity: 0;
+    transition: opacity 0.3s;
+    text-align: center;
+    padding: 8px 0;
+    width: 100%;
+    word-break: break-word;
+}
+
+.pillar.grow-bronze { height: 240px; }
+.pillar.grow-silver { height: 450px; }
+.pillar.grow-gold   { height: 660px; }
+
+.pillar-label.visible {
+    opacity: 1;
 }
 
 @media (max-width: 600px) {

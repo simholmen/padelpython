@@ -1,45 +1,98 @@
 <!DOCTYPE html>
 <html lang="no">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Resultater</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
-<body>
-<h2>Resultater:</h2>
 
-<div class="podium-container">
-    <div class="podium">
-        <div class="pillar silver">
-            <div class="pillar-label">
-                2<br>
-                {% if players|length > 1 %}{{ players[1].name }}{% endif %}
+<body>
+    <h1>Resultater:</h1>
+    <a href="{{ url_for('index') }}" class="tilbake-knapp">← Tilbake</a>
+
+    <div class="podium-container">
+        <div class="podium">
+            <div class="pillar silver">
+                <div class="pillar-label">
+                    {% if players|length > 1 %}{{ players[1].name }}<br><br>
+                    {{players[1].wins}} Seiere<br>
+                    {{players[1].points}} Poeng{% endif %}
+                </div>
             </div>
-        </div>
-        <div class="pillar gold">
-            <div class="pillar-label">
-                1<br>
-                {% if players|length > 0 %}{{ players[0].name }}{% endif %}
+            <div class="pillar gold">
+                <div class="pillar-label">
+                    {% if players|length > 0 %}{{ players[0].name }}<br> <br>
+                    {{players[0].wins}} Seiere<br>
+                    {{players[0].points}} Poeng{% endif %}
+                </div>
             </div>
-        </div>
-        <div class="pillar bronze">
-            <div class="pillar-label">
-                3<br>
-                {% if players|length > 2 %}{{ players[2].name }}{% endif %}
+            <div class="pillar bronze">
+                <div class="pillar-label">
+                    {% if players|length > 2 %}{{ players[2].name }}<br><br>
+                    {{players[2].wins}} Seiere<br>
+                    {{players[2].points}} Poeng{% endif %}
+                </div>
             </div>
         </div>
     </div>
-</div>
 
-<ul class="result-list">
-    {% for player in players[3:] %}
-    <li>
-        <span class="plassering">{{ loop.index + 3 }}.</span>
-        <span class="spiller-navn">{{ player.name }}</span>
-        <span class="stats">Seiere: {{ player.wins }} Poeng: {{ player.points }}</span>
-    </li>
-    {% endfor %}
-</ul>
+    <ul id="player-list" class="result-list">
+        {% for player in players[3:] %}
+        <li class="player-item">
+            <span class="plassering">{{ loop.index + 3 }}.</span>
+            <span class="spiller-navn">{{ player.name }}</span>
+            <span class="stats">
+                {{ player.wins }} Seiere<br>
+                {{ player.points }} Poeng
+            </span>
+        </li>
+        {% endfor %}
+    </ul>
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            // Animate the list
+            const items = Array.from(document.querySelectorAll('.player-item'));
+            let i = items.length - 1;
+            function showNext() {
+                if (i < 0) {
+                    animatePodium();
+                    return;
+                }
+                items[i].classList.add('visible');
+                i--;
+                setTimeout(showNext, 1500);
+            }
+            showNext();
+
+            // Animate the podium pillars
+            function animatePodium() {
+                const bronze = document.querySelector('.pillar.bronze');
+                const silver = document.querySelector('.pillar.silver');
+                const gold = document.querySelector('.pillar.gold');
+                const bronzeLabel = bronze.querySelector('.pillar-label');
+                const silverLabel = silver.querySelector('.pillar-label');
+                const goldLabel = gold.querySelector('.pillar-label');
+
+                // Bronze
+                bronze.classList.add('grow-bronze');
+                setTimeout(() => {
+                    bronzeLabel.classList.add('visible');
+                    // Silver
+                    silver.classList.add('grow-silver');
+                    setTimeout(() => {
+                        silverLabel.classList.add('visible');
+                        // Gold
+                        gold.classList.add('grow-gold');
+                        setTimeout(() => {
+                            goldLabel.classList.add('visible');
+                        }, 1000);
+                    }, 1000);
+                }, 1000);
+            }
+        });
+    </script>
 </body>
+
 </html>
