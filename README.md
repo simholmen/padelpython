@@ -27,5 +27,14 @@ python src/main.py
 - Resultater kan bli vist etter hver runde eller når turneringen er ferdig
 - Walkover for ekstra personer
 
+## Live Display (JavaScript / GitHub Pages)
+`docs/` inneholder en frittstående JavaScript-versjon med et nytt, tastatur-styrt "big screen"-design (oppsett → live kamper/tabell/spotlight → finale med podium og "Lucky Loser"-hjul). Den er statisk (ingen backend) og kjører helt i nettleseren med localStorage som mellomlagring, ment for å kjøres på GitHub Pages fra `main`/`docs`. Turneringslogikken (poeng/seier-beregning, sortering) er portert 1:1 fra `src/player.py`/`src/tournament.py`, men rundebygging er utvidet med banetak (maks kamper = antall baner) og rullerende walkover-prioritering i stedet for 1v1-ekstrakamper, siden banene her kun er dobbelbaner.
+
+For å teste lokalt:
+```
+python -m http.server 8000 --directory docs
+```
+og åpne `http://localhost:8000`.
+
 ## Contributing
 Laget av Simen
