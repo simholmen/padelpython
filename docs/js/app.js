@@ -14,6 +14,9 @@ const modalEl = document.getElementById("modal-root");
 
 const loaded = loadState();
 const state = loaded ? Object.assign(createInitialState(), loaded) : createInitialState();
+// Not editable in the UI, so always take it from state.js rather than an older
+// saved copy -- otherwise renaming it there never shows up in a running browser.
+state.tournamentName = createInitialState().tournamentName;
 state.selectedPlayerId = null; // the player popup is transient UI, never resume it on reload
 state.confirmingReset = false; // ditto for the logo's "start over" confirm dialog
 state.confirmingClearPlayers = false; // ditto for the "remove all players" confirm dialog
@@ -21,6 +24,8 @@ state.showAdminTable = false; // ditto for the admin table modal
 state.removalTargetId = null; // ditto for the remove-player picker
 state.adminRoundFilter = "total"; // ditto for the admin table's round dropdown
 state.confirmingRevertRound = null; // ditto for the revert-round confirm
+state.adminNewPlayerName = ""; // ditto for the admin table's add-player field
+state.addPlayerError = ""; // ditto for the duplicate-name error under either add field
 
 // A refresh mid-spin persists spinning:true, but the in-memory setTimeout that
 // would ever clear it is gone -- spinWheel() would refuse to spin again
@@ -110,12 +115,39 @@ function celebrate() {
 
 function setNewPlayerName(val) {
   state.newPlayerName = val;
+  clearAddPlayerError();
   persistOnly();
+}
+
+// Player names must be unique -- case-insensitive and ignoring surrounding
+// whitespace, so "Emma" and " emma " count as the same person. Shared by the
+// setup list's add and the admin table's mid-tournament add.
+function nameTaken(name) {
+  const key = name.trim().toLocaleLowerCase("no");
+  return state.players.some((p) => p.name.trim().toLocaleLowerCase("no") === key);
+}
+
+function duplicateNameError(name) {
+  return `Dette navnet er tatt: «${name}»`;
+}
+
+// Typing in either add field clears a shown duplicate-name error. Patched out
+// of the DOM directly (not a re-render) so the input keeps focus and caret,
+// same reasoning as setNewPlayerName's persistOnly.
+function clearAddPlayerError() {
+  if (!state.addPlayerError) return;
+  state.addPlayerError = "";
+  appEl.querySelectorAll(".add-player-error").forEach((el) => el.remove());
 }
 
 function addPlayer() {
   const name = (state.newPlayerName || "").trim();
   if (!name) return;
+  if (nameTaken(name)) {
+    state.addPlayerError = duplicateNameError(name);
+    persistAndRender();
+    return;
+  }
   const player = createPlayer(name);
   if (state.newPlayerCasual) player.points = -1;
   state.players.push(player);
@@ -136,7 +168,7 @@ const TEST_PLAYER_NAMES = [
 
 function addTestPlayers() {
   if (!isDevMode()) return;
-  TEST_PLAYER_NAMES.forEach((name) => state.players.push(createPlayer(name)));
+  TEST_PLAYER_NAMES.filter((name) => !nameTaken(name)).forEach((name) => state.players.push(createPlayer(name)));
   persistAndRender();
 }
 
@@ -193,11 +225,16 @@ function setWaveModeEnabled(val) {
   persistAndRender();
 }
 
-// Builds a brand-new round (never mid-wave -- see confirmRoundEnd for that),
-// picking whichever strategy is active: the special last round, wave mode
-// (queues extra waves within the round instead of a walkover), or normal.
-// Shared by startTournament and confirmRoundEnd so the three-way branch and
-// its wave-state bookkeeping only exists in one place.
+// Builds a brand-new round, picking whichever strategy is active: the special
+// last round, wave mode, or normal. Shared by startTournament and
+// confirmRoundEnd so the three-way branch only exists in one place.
+//
+// Wave mode puts BOTH waves on screen at once as one flat list of matches --
+// each tagged with its `wave` number, so renderMatchups can draw the
+// "BØLGE 2" divider -- and the whole round is registered in one go, like a
+// normal round. pendingWaves/waveNumber/waveTotal are therefore always their
+// no-waves defaults for new rounds; the wave-by-wave branch in confirmRoundEnd
+// only still runs for a tournament that was saved mid-wave by an older version.
 function buildNewRound(useLastRound) {
   if (useLastRound) {
     const { matches, walkoverPlayerIds } = buildLastRound(state.players, state.courtCount, state.courtNames);
@@ -205,14 +242,8 @@ function buildNewRound(useLastRound) {
   }
   if (state.waveModeEnabled) {
     const { waves, walkoverPlayerIds } = buildWaveRound(state.players, state.courtCount, state.courtNames);
-    const pendingWaves = waves.slice(1);
-    return {
-      matches: waves[0],
-      walkoverPlayerIds: pendingWaves.length === 0 ? walkoverPlayerIds : [],
-      pendingWaves,
-      waveTotal: waves.length,
-      waveRemainderIds: walkoverPlayerIds,
-    };
+    const matches = waves.flatMap((wave, wi) => wave.map((m) => ({ ...m, wave: wi + 1 })));
+    return { matches, walkoverPlayerIds, pendingWaves: [], waveTotal: 1, waveRemainderIds: [] };
   }
   const { matches, walkoverPlayerIds } = buildRound(state.players, state.courtCount, state.courtNames);
   return { matches, walkoverPlayerIds, pendingWaves: [], waveTotal: 1, waveRemainderIds: [] };
@@ -420,7 +451,13 @@ function spinWheel() {
   if (state.spinning) return;
   const n = state.luckyPoolIds.length;
   if (!n) return;
-  const { winnerIdx, rotation } = computeSpin(n);
+  const { winnerIdx, rotation: spin } = computeSpin(n);
+  // computeSpin's rotation assumes a wheel starting at 0deg. On a re-spin the
+  // wheel is still sitting at the previous landing angle, so build on top of
+  // the next full turn past it -- same landing segment, and the CSS transition
+  // still spins forward instead of unwinding backwards.
+  const base = Math.ceil(state.wheelRotation / 360) * 360;
+  const rotation = base + spin;
   state.spinning = true;
   state.wheelRotation = rotation;
 
@@ -431,7 +468,12 @@ function spinWheel() {
   // straight to the end. Setting it on the existing, already-painted node lets
   // the transition actually play.
   const wheelEl = screenEl.querySelector(".wheel-circle");
-  if (wheelEl) wheelEl.style.transform = `rotate(${rotation}deg)`;
+  if (wheelEl) {
+    // Force a layout flush first: on a re-spin the node was only just rendered
+    // this same tick, and without a painted "from" value the transition snaps.
+    void wheelEl.offsetWidth;
+    wheelEl.style.transform = `rotate(${rotation}deg)`;
+  }
   persistOnly();
 
   setTimeout(() => {
@@ -441,6 +483,16 @@ function spinWheel() {
     persistAndRender();
     celebrate();
   }, SPIN_DURATION_MS);
+}
+
+// From the result step: back to the wheel (still resting where it landed,
+// same pool) and straight into a fresh spin.
+function spinAgain() {
+  if (state.spinning || !state.luckyPoolIds.length) return;
+  state.finaleStep = 1;
+  state.luckyWinnerId = null;
+  persistAndRender();
+  spinWheel();
 }
 
 function resetTournament() {
@@ -515,6 +567,7 @@ function showAdmin() {
 function hideAdmin() {
   state.showAdminTable = false;
   state.adminRoundFilter = "total";
+  state.addPlayerError = "";
   renderModal();
 }
 
@@ -641,6 +694,46 @@ function setPlayerPointsAdmin(id, val) {
   p.points = n;
   sortPlayers(state.players);
   persistOnly();
+}
+
+// ---- Admin: add a player mid-tournament ----
+// The new player sits out the rest of the current round (its matches/waves
+// are already built) and joins from the next round on. satOutLastRound makes
+// buildRound treat them like someone coming back from a walkover, so they're
+// guaranteed a match in that first round instead of being benched again.
+// walkoverScore starts at the field's average rather than 0: at 0 they'd be
+// first in line for every walkover after that (pickBenched goes lowest-first).
+
+function setAdminNewPlayerName(val) {
+  state.adminNewPlayerName = val;
+  clearAddPlayerError();
+}
+
+function focusAdminAddInput() {
+  const input = modalEl.querySelector('[data-bind="admin-new-player-name"]');
+  if (input) input.focus();
+}
+
+function addPlayerAdmin() {
+  const name = (state.adminNewPlayerName || "").trim();
+  if (!name || state.phase !== "live") return;
+  if (nameTaken(name)) {
+    state.addPlayerError = duplicateNameError(name);
+    renderModal();
+    focusAdminAddInput();
+    return;
+  }
+  const player = createPlayer(name);
+  const n = state.players.length;
+  player.walkoverScore = n ? state.players.reduce((sum, p) => sum + p.walkoverScore, 0) / n : 0;
+  player.satOutLastRound = true;
+  state.players.push(player);
+  sortPlayers(state.players);
+  state.adminNewPlayerName = "";
+  persistAndRender();
+  renderModal();
+  // Keep the cursor in the field so several late arrivals can be typed in a row.
+  focusAdminAddInput();
 }
 
 // ---- Admin: remove a player mid-tournament ----
@@ -792,6 +885,7 @@ appEl.addEventListener("click", (e) => {
     case "start-finale": startFinale(); break;
     case "request-last-round": requestLastRound(); break;
     case "reset-tournament": resetTournament(); break;
+    case "spin-again": spinAgain(); break;
     case "logo-reset": requestLogoReset(); break;
     case "confirm-logo-reset": confirmLogoReset(); break;
     case "cancel-logo-reset": cancelLogoReset(); break;
@@ -802,6 +896,7 @@ appEl.addEventListener("click", (e) => {
     case "close-player": hidePlayer(); break;
     case "show-admin": showAdmin(); break;
     case "close-admin": hideAdmin(); break;
+    case "add-player-admin": addPlayerAdmin(); break;
     case "request-remove-player": requestRemovePlayer(el.dataset.playerId); break;
     case "cancel-remove-player": cancelRemovePlayer(); break;
     case "remove-player-now": removePlayerNow(el.dataset.playerId); break;
@@ -830,6 +925,7 @@ appEl.addEventListener("input", (e) => {
   else if (bind === "admin-player-wins") setPlayerWinsAdmin(el.dataset.playerId, el.value);
   else if (bind === "admin-player-points") setPlayerPointsAdmin(el.dataset.playerId, el.value);
   else if (bind === "admin-round-filter") setAdminRoundFilter(el.value);
+  else if (bind === "admin-new-player-name") setAdminNewPlayerName(el.value);
   else if (bind === "score1") { setMatchScore(Number(el.dataset.matchId), "score1", el.value); refreshMatchStatusBadge(Number(el.dataset.matchId)); }
   else if (bind === "score2") { setMatchScore(Number(el.dataset.matchId), "score2", el.value); refreshMatchStatusBadge(Number(el.dataset.matchId)); }
 });
@@ -837,6 +933,9 @@ appEl.addEventListener("input", (e) => {
 appEl.addEventListener("keydown", (e) => {
   if (e.key === "Enter" && e.target.dataset && e.target.dataset.bind === "new-player-name") {
     addPlayer();
+  }
+  if (e.key === "Enter" && e.target.dataset && e.target.dataset.bind === "admin-new-player-name") {
+    addPlayerAdmin();
   }
 });
 

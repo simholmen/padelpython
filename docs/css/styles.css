@@ -380,6 +380,21 @@ input[type="number"] { -moz-appearance: textfield; }
 }
 .admin-remove-btn:hover { background: var(--danger-soft); }
 
+.admin-add-player { width: 100%; display: flex; gap: 8px; margin-top: 8px; }
+.admin-add-input {
+  flex: 1; min-width: 0;
+  background: var(--bg); color: var(--text);
+  border: 1px solid var(--border-strong); border-radius: 8px;
+  padding: 8px 10px; font-family: inherit; font-size: 14px;
+}
+.admin-add-input:focus { outline: none; border-color: var(--accent-border); }
+.admin-add-btn {
+  background: var(--accent); color: var(--on-accent); border: none;
+  border-radius: 8px; padding: 8px 16px; font-weight: 800; font-size: 12px; letter-spacing: 0.5px; cursor: pointer;
+}
+.add-player-error { width: 100%; font-size: 13px; font-weight: 700; color: var(--danger); margin-top: 6px; }
+.admin-add-hint { width: 100%; font-size: 12px; color: var(--muted); }
+
 .remove-player-modal { width: 480px; gap: 16px; }
 .remove-player-options {
   width: 100%;
@@ -837,7 +852,26 @@ input[type="number"] { -moz-appearance: textfield; }
   align-items: center;
   gap: 14px;
   flex-wrap: wrap;
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  margin: 0 -56px -24px;
+  /* Left padding clears the fixed LYS MODUS/ADMIN buttons (.bottom-left-controls),
+     which would otherwise cover the label while this row is stuck to the bottom. */
+  padding: 16px 56px 16px 270px;
+  background: var(--bg);
+  border-top: 1px solid var(--border);
 }
+
+.wave-divider {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-size: 14px; font-weight: 800; letter-spacing: 3px; color: var(--accent);
+}
+.wave-divider::before,
+.wave-divider::after { content: ""; flex: 1; height: 1px; background: var(--border-strong); }
 .walkover-label { font-size: 13px; font-weight: 800; letter-spacing: 2px; color: var(--muted); text-transform: uppercase; }
 .walkover-chip {
   font-size: 14px; font-weight: 700; color: var(--text); background: var(--surface);
@@ -1174,5 +1208,8 @@ input[type="number"] { -moz-appearance: textfield; }
   margin-top: 20px; background: var(--accent); color: var(--on-accent); border: none;
   border-radius: 999px; padding: 18px 48px; font-weight: 800; font-size: 18px; letter-spacing: 2px; cursor: pointer;
 }
+
+.result-actions { display: flex; flex-wrap: wrap; gap: 16px; justify-content: center; }
+.btn-spin-again { background: var(--surface); color: var(--text); border: 1px solid var(--border-strong); }
 
 .finale-hint { padding-bottom: 28px; padding-top: 20px; font-size: 13px; font-weight: 700; letter-spacing: 1px; color: var(--muted); }

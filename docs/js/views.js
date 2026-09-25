@@ -4,7 +4,7 @@
 // below) so opening the player popup never rebuilds the screen underneath it.
 
 import { isDevMode } from "./env.js";
-import { matchScoreError, listRevealStep, podiumStartSeconds } from "./tournament.js";
+import { matchScoreError, listRevealStep, podiumStartSeconds, MAX_WAVES } from "./tournament.js";
 
 const SCORE_ERROR_MESSAGES = {
   incomplete: "Fyll inn poeng for begge lag",
@@ -102,8 +102,9 @@ function renderSetup(state) {
 
   const n = state.players.length;
   const totalGroups = Math.floor(n / 4);
-  const groupsReady = state.waveModeEnabled ? totalGroups : Math.min(totalGroups, state.courtCount);
-  const waveCount = state.waveModeEnabled ? Math.ceil(totalGroups / Math.max(state.courtCount, 1)) : 1;
+  const maxMatches = state.waveModeEnabled ? state.courtCount * MAX_WAVES : state.courtCount;
+  const groupsReady = Math.min(totalGroups, maxMatches);
+  const waveCount = state.waveModeEnabled ? Math.ceil(groupsReady / Math.max(state.courtCount, 1)) : 1;
   const canStart = n >= 4;
 
   return `
@@ -122,6 +123,7 @@ function renderSetup(state) {
           <input class="player-input" data-bind="new-player-name" placeholder="Spiller-navn" value="${escapeHtml(state.newPlayerName)}">
           <button class="btn-add" data-action="add-player">LEGG TIL</button>
         </div>
+        ${state.addPlayerError ? `<div class="add-player-error">${escapeHtml(state.addPlayerError)}</div>` : ""}
         <label class="casual-checkbox-row" title="Legger til spilleren med -1 poeng, slik at uformelle spillere havner nederst i runde 1 og gjerne møter hverandre">
           <input type="checkbox" data-bind="new-player-casual" ${state.newPlayerCasual ? "checked" : ""}>
           UFORMELL (STARTER MED −1 POENG)
@@ -152,9 +154,9 @@ function renderSetup(state) {
         <input type="checkbox" data-bind="lucky-loser-enabled" ${state.luckyLoserEnabled ? "checked" : ""}>
         LUCKY LOSER-TREKNING PÅ SLUTTEN
       </label>
-      <label class="setting-toggle-row" title="Når det er flere spillere enn det er plass til på banene samtidig, spilles runden i flere bølger etter hverandre i stedet for at overtallige får walkover">
+      <label class="setting-toggle-row" title="Når det er flere spillere enn det er plass til på banene samtidig, spilles runden i to bølger etter hverandre. Er det fortsatt for mange, får de overtallige walkover">
         <input type="checkbox" data-bind="wave-mode-enabled" ${state.waveModeEnabled ? "checked" : ""}>
-        SPILL I BØLGER (INGEN WALKOVER)
+        SPILL I TO BØLGER
       </label>
     </div>
 
@@ -218,9 +220,19 @@ function renderMatchCard(m, byId, showErrors) {
   </div>`;
 }
 
+// Wave mode shows the whole round at once: wave 1's matches first, then a
+// full-width "BØLGE 2" divider and wave 2's matches (see buildNewRound in
+// app.js). The page scrolls when that doesn't fit; the walkover row is
+// sticky to the bottom of the viewport so it's always visible.
 function renderMatchups(state, byId) {
   const cards = state.matches
-    .map((m, i) => renderMatchCard({ ...m, __idx: i }, byId, state.showScoreErrors))
+    .map((m, i) => {
+      const prevWave = i > 0 ? state.matches[i - 1].wave : undefined;
+      const divider = m.wave > 1 && m.wave !== prevWave
+        ? `<div class="wave-divider"><span>BØLGE ${m.wave}</span></div>`
+        : "";
+      return divider + renderMatchCard({ ...m, __idx: i }, byId, state.showScoreErrors);
+    })
     .join("");
 
   let walkoverRow = "";
@@ -377,7 +389,7 @@ function renderLive(state) {
         <img class="live-logo logo-reset" src="assets/nito-logo.png" alt="NITO" data-action="logo-reset" title="Start en ny turnering">
         <div class="live-titles">
           <div class="live-name">${escapeHtml(state.tournamentName)}</div>
-          <div class="live-format">AMERICANO FORMAT · ${state.courtCount} BANER</div>
+          <div class="live-format">Av Simen Emil Wiig Holmen · ${state.courtCount} BANER</div>
         </div>
       </div>
       <div class="live-header-right">
@@ -490,7 +502,10 @@ function renderFinaleResult(state) {
   return `<div class="finale-step finale-result">
     <div class="result-label">LUCKY LOSER</div>
     <div class="result-name" ${winner ? playerClickAttr(winner.id) : ""}>${winner ? escapeHtml(winner.name) : ""}</div>
-    <button class="btn-reset" data-action="reset-tournament">NY TURNERING</button>
+    <div class="result-actions">
+      <button class="btn-reset btn-spin-again" data-action="spin-again">SPINN IGJEN</button>
+      <button class="btn-reset" data-action="reset-tournament">NY TURNERING</button>
+    </div>
   </div>`;
 }
 
@@ -702,6 +717,13 @@ function renderAdminTable(state) {
           <tbody>${rows}</tbody>
         </table>`
       : `<div class="history-empty">Ingen spillere ennå</div>`}
+    ${state.phase === "live" ? `
+    <div class="admin-add-player">
+      <input class="admin-add-input" data-bind="admin-new-player-name" value="${escapeHtml(state.adminNewPlayerName || "")}" placeholder="Navn på ny spiller" aria-label="Ny spiller">
+      <button class="admin-add-btn" data-action="add-player-admin">LEGG TIL</button>
+    </div>
+    ${state.addPlayerError ? `<div class="add-player-error">${escapeHtml(state.addPlayerError)}</div>` : ""}
+    <div class="admin-add-hint">Nye spillere blir med fra neste runde.</div>` : ""}
   </div>`;
 }
 

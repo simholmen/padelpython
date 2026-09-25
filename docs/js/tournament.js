@@ -95,11 +95,35 @@ function pickBenched(pool, count, rankById, n) {
 // played last round isn't enough, satOutLast players are pulled back in too
 // (same lowest-score-first rule) as an unavoidable fallback.
 export function buildRound(players, courtCount, courtNames) {
+  const { playing, benched } = selectPlaying(players, courtCount);
+
+  const matches = [];
+  for (let i = 0; i < playing.length; i += 4) {
+    const [p1, p2, p3, p4] = playing.slice(i, i + 4);
+    matches.push({
+      court: courtNames[i / 4] || "Bane " + (i / 4 + 1),
+      team1: [p1.id, p4.id],
+      team2: [p2.id, p3.id],
+      score1: "",
+      score2: "",
+      live: true,
+    });
+  }
+
+  return { matches, walkoverPlayerIds: benched.map((p) => p.id) };
+}
+
+// Shared bench selection for buildRound and buildWaveRound: sorts `players`,
+// fits at most `maxMatches` matches, and picks who sits out by the fairness
+// rules described above buildRound. Updates every player's satOutLastRound
+// for the round being built, and returns the playing players in standings
+// order (so groups of 4 still follow rank).
+function selectPlaying(players, maxMatches) {
   sortPlayers(players);
 
   const n = players.length;
   const maxGroups = Math.floor(n / 4);
-  const capacityGroups = Math.min(maxGroups, courtCount);
+  const capacityGroups = Math.min(maxGroups, maxMatches);
   const capacity = capacityGroups * 4;
   const benchNeeded = n - capacity;
 
@@ -116,63 +140,30 @@ export function buildRound(players, courtCount, courtNames) {
   }
 
   // Re-derive playing/benched from the sorted `players` array (not the pools
-  // above) so match team pairing still follows standings order, exactly like
-  // app.py.
+  // above) so match team pairing still follows standings order. Each group of
+  // 4 pairs Mexicano-style, 1+4 vs 2+3, so both teams are as even as possible
+  // (the original app.py used 1+3 vs 2+4). Same pairing in buildWaveRound and
+  // buildLastRound below.
   const benchedIds = new Set(benched.map((p) => p.id));
   const playing = players.filter((p) => !benchedIds.has(p.id));
-
-  const matches = [];
-  for (let i = 0; i < playing.length; i += 4) {
-    const [p1, p2, p3, p4] = playing.slice(i, i + 4);
-    matches.push({
-      court: courtNames[i / 4] || "Bane " + (i / 4 + 1),
-      team1: [p1.id, p3.id],
-      team2: [p2.id, p4.id],
-      score1: "",
-      score2: "",
-      live: true,
-    });
-  }
 
   playing.forEach((p) => { p.satOutLastRound = false; });
   benched.forEach((p) => { p.satOutLastRound = true; });
 
-  return { matches, walkoverPlayerIds: benched.map((p) => p.id) };
+  return { playing, benched };
 }
 
-// Wave mode: instead of benching everyone who doesn't fit on the courts at
-// once, splits the round into sequential waves -- each using the full court
-// capacity -- so within one round number, everyone down to the unavoidable
-// n % 4 remainder gets an actual match and real points instead of a
-// walkover. The waving players skip the walkoverScore/no-repeat-benching
-// system entirely (nobody's actually sitting out among them, just playing
-// later in the same round); only the true remainder goes through that same
-// fairness selection as a normal round, against whatever's left over (0-3
-// people), so who (if anyone) misses out still rotates fairly over time.
+// Wave mode ("spill i to bølger"): the round is played in at most TWO
+// sequential waves, each using the full court capacity, so up to twice as
+// many players get a real match per round as in a normal round. Anyone who
+// still doesn't fit -- the n % 4 remainder, plus any overflow beyond
+// 2 x courts matches -- gets a walkover, picked by the exact same fairness
+// rules as a normal round (see selectPlaying), so who misses out still
+// rotates fairly over time.
+export const MAX_WAVES = 2;
+
 export function buildWaveRound(players, courtCount, courtNames) {
-  sortPlayers(players);
-
-  const n = players.length;
-  const groups = Math.floor(n / 4);
-  const remainderCount = n - groups * 4;
-
-  const rankById = new Map(players.map((p, i) => [p.id, i + 1]));
-  const playing = players.slice(0, groups * 4);
-  const remainderPool = players.slice(groups * 4);
-
-  const satOutLast = remainderPool.filter((p) => p.satOutLastRound);
-  const playedLast = remainderPool.filter((p) => !p.satOutLastRound);
-  let walkover;
-  if (remainderCount <= playedLast.length) {
-    walkover = pickBenched(playedLast, remainderCount, rankById, n);
-  } else {
-    const extra = remainderCount - playedLast.length;
-    walkover = [...playedLast, ...pickBenched(satOutLast, extra, rankById, n)];
-  }
-  const walkoverIds = new Set(walkover.map((p) => p.id));
-
-  playing.forEach((p) => { p.satOutLastRound = false; });
-  remainderPool.forEach((p) => { p.satOutLastRound = walkoverIds.has(p.id); });
+  const { playing, benched } = selectPlaying(players, courtCount * MAX_WAVES);
 
   const allMatches = [];
   for (let i = 0; i < playing.length; i += 4) {
@@ -184,8 +175,8 @@ export function buildWaveRound(players, courtCount, courtNames) {
   for (let i = 0; i < allMatches.length; i += courtCount) {
     const waveMatches = allMatches.slice(i, i + courtCount).map((m, ci) => ({
       court: courtNames[ci] || "Bane " + (ci + 1),
-      team1: [m.p1.id, m.p3.id],
-      team2: [m.p2.id, m.p4.id],
+      team1: [m.p1.id, m.p4.id],
+      team2: [m.p2.id, m.p3.id],
       score1: "",
       score2: "",
       live: true,
@@ -194,7 +185,7 @@ export function buildWaveRound(players, courtCount, courtNames) {
   }
   if (waves.length === 0) waves.push([]);
 
-  return { waves, walkoverPlayerIds: walkover.map((p) => p.id) };
+  return { waves, walkoverPlayerIds: benched.map((p) => p.id) };
 }
 
 // The organizer's "wrap it up" button: same court-count capacity as a normal
@@ -219,8 +210,8 @@ export function buildLastRound(players, courtCount, courtNames) {
     const [p1, p2, p3, p4] = playing.slice(i, i + 4);
     matches.push({
       court: courtNames[i / 4] || "Bane " + (i / 4 + 1),
-      team1: [p1.id, p3.id],
-      team2: [p2.id, p4.id],
+      team1: [p1.id, p4.id],
+      team2: [p2.id, p3.id],
       score1: "",
       score2: "",
       live: true,

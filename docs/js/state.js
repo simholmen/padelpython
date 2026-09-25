@@ -82,5 +82,7 @@ export function createInitialState() {
     removalTargetId: null, // player id going through the admin table's remove-player picker, not persisted
     adminRoundFilter: "total", // admin table's round dropdown -- "total" or a round number string, not persisted
     confirmingRevertRound: null, // round number going through the "revert to this round" confirm, not persisted
+    adminNewPlayerName: "", // admin table's "add player mid-tournament" field, not persisted
+    addPlayerError: "", // duplicate-name error shown under the setup or admin add field, not persisted
   };
 }
