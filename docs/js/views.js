@@ -306,22 +306,95 @@ function renderLeaderboard(state) {
   </div>`;
 }
 
+// The three spotlight awards. Every pick walks state.players in standings
+// order and only takes over on a strictly better value, so ties always go to
+// whoever is higher in the table. Each returns null when there's nothing to
+// award yet (e.g. round 1, before any results), which renders an empty card.
+
+// Longest current winning streak (walkovers don't touch streaks -- see applyResults).
+function pickStreakLeader(players) {
+  let best = null;
+  players.forEach((p) => { if (p.streak > 0 && (!best || p.streak > best.streak)) best = p; });
+  return best;
+}
+
+// The biggest winning margin from the last completed round, read from each
+// player's match history (both teammates carry the same entry, so the first
+// one found in standings order stands in for the team).
+function pickBestMarginTeam(players, round) {
+  let best = null;
+  players.forEach((p) => {
+    (p.history || []).forEach((h) => {
+      if (h.round !== round || h.type !== "match" || h.result !== "win") return;
+      const margin = h.myScore - h.opponentScore;
+      if (!best || margin > best.margin) best = { player: p, teammateName: h.teammate, h, margin };
+    });
+  });
+  if (!best) return null;
+  const teammate = players.find((p) => p.name === best.teammateName) || null;
+  return { ...best, teammate };
+}
+
+// Most places climbed in the table when the last round was registered.
+function pickBiggestClimber(players) {
+  let best = null;
+  players.forEach((p) => { if (p.change > 0 && (!best || p.change > best.change)) best = p; });
+  return best;
+}
+
+function spotlightCard(label, bodyHtml) {
+  return `
+  <div class="spotlight-card">
+    <div class="spotlight-label">${label}</div>
+    ${bodyHtml || `<div class="spotlight-empty">Ingen ennå</div>`}
+  </div>`;
+}
+
+function spotlightPlayer(p) {
+  return `
+  <div class="spotlight-clickable" ${playerClickAttr(p.id)}>
+    <div class="spotlight-avatar">${initials(p.name)}</div>
+    <div class="spotlight-name">${escapeHtml(p.name)}</div>
+  </div>`;
+}
+
+function spotlightStat(value, label) {
+  return `<div class="stat-block"><div class="stat-value">${value}</div><div class="stat-label">${label}</div></div>`;
+}
+
 function renderSpotlight(state) {
   const players = state.players;
-  const mvp = players.length
-    ? players.reduce((a, b) => (b.streak > a.streak ? b : a), players[0])
-    : { name: "", streak: 0, wins: 0, points: 0 };
+  const lastRound = state.round - 1;
+
+  const streak = pickStreakLeader(players);
+  const margin = pickBestMarginTeam(players, lastRound);
+  const climber = pickBiggestClimber(players);
+
+  const streakBody = streak
+    ? `${spotlightPlayer(streak)}${spotlightStat(`🔥 ${streak.streak}`, "SEIRE PÅ RAD")}`
+    : "";
+
+  const marginBody = margin
+    ? `
+    <div class="spotlight-team">
+      ${[margin.player, margin.teammate].filter(Boolean).map((p) => `
+      <div class="spotlight-clickable" ${playerClickAttr(p.id)}>
+        <div class="spotlight-avatar spotlight-avatar-sm">${initials(p.name)}</div>
+      </div>`).join("")}
+    </div>
+    <div class="spotlight-name">${escapeHtml(margin.player.name)}${margin.teammate ? ` &amp; ${escapeHtml(margin.teammate.name)}` : ""}</div>
+    ${spotlightStat(`+${margin.margin}`, `VANT ${margin.h.myScore}–${margin.h.opponentScore} I RUNDE ${lastRound}`)}`
+    : "";
+
+  const climberBody = climber
+    ? `${spotlightPlayer(climber)}${spotlightStat(`▲ ${climber.change}`, climber.change === 1 ? "PLASS OPP" : "PLASSER OPP")}`
+    : "";
 
   return `<div class="live-view spotlight">
-    <div class="spotlight-label">PLAYER OF THE ROUND</div>
-    <div class="spotlight-clickable" ${playerClickAttr(mvp.id)}>
-      <div class="spotlight-avatar">${initials(mvp.name)}</div>
-      <div class="spotlight-name">${escapeHtml(mvp.name)}</div>
-    </div>
-    <div class="spotlight-stats">
-      <div class="stat-block"><div class="stat-value">${mvp.wins}</div><div class="stat-label">SEIRE</div></div>
-      <div class="stat-block"><div class="stat-value">${mvp.streak}</div><div class="stat-label">STREAK</div></div>
-      <div class="stat-block"><div class="stat-value">${mvp.points}</div><div class="stat-label">POENG</div></div>
+    <div class="spotlight-grid">
+      ${spotlightCard("LENGSTE WINSTREAK", streakBody)}
+      ${spotlightCard("STØRSTE SEIER", marginBody)}
+      ${spotlightCard("STØRSTE KLATRER", climberBody)}
     </div>
   </div>`;
 }
